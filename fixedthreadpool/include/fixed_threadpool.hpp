@@ -5,6 +5,14 @@
 #include<atomic>
 #include <chrono>
 using namespace std;
+//拒绝策略
+enum class RejectPolicy {
+    abort,           // 直接抛异常（默认）
+    caller_runs,     // 调用者线程执行
+    discard,         // 静默丢弃
+    discard_oldest   // 丢弃最老任务
+};
+
 class fixedthreadpool{
 public:
     using task=function<void()>;
@@ -13,6 +21,8 @@ private:
     syncqueue<task>m_queue;
     atomic<bool>m_running;//原子变量 无需加锁
     once_flag m_stopflag;//只允许改变一次
+
+    RejectPolicy m_policy;
 
     void runthread(){
         while(m_running){
@@ -30,7 +40,7 @@ private:
         m_threads.clear();
     }
 public:
-    fixedthreadpool(int numthreads=thread::hardware_concurrency()):m_running(true){//当前系统硬件并发数 cpu核心数
+    fixedthreadpool(int numthreads=thread::hardware_concurrency()):m_running(true),m_policy(m_policy){//当前系统硬件并发数 cpu核心数
         if(numthreads<=0)numthreads=thread::hardware_concurrency();
         for(int i=0;i<numthreads;i++){
             m_threads.emplace_back(&fixedthreadpool::runthread,this);
@@ -40,7 +50,10 @@ public:
         stop();
     }
     void stop(){
-        call_once(m_stopflag,[this]{stopthreads();});
+        call_once(m_stopflag,[this]{stopthreads();});//保证只调用一次
+    }
+    void setrejectpolicy(RejectPolicy policy){
+        m_policy=policy;
     }
     template<typename Y>
     void addtask(Y&&task){
