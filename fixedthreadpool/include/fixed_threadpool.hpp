@@ -1,7 +1,7 @@
 #ifndef FIXED_THREAD_POOL_HPP
 #define FIXED_THREAD_POOL_HPP
 #include<iostream>
-#include"syncqueue.hpp"
+#include"syncqueueforfixed.hpp"
 #include<atomic>
 #include <chrono>
 using namespace std;
@@ -28,7 +28,7 @@ private:
         while(m_running){
             task t;
             m_queue.take(t);
-            if(t&&m_running)task();
+            if(t&&m_running)t();
         }
     }
     void stopthreads(){

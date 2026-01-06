@@ -1,6 +1,6 @@
 //同步队列
-#ifndef SYNCQUEUE_HPP
-#define SYNCQUEUE_HPP
+#ifndef SYNCQUEUEFORFIXED_HPP
+#define SYNCQUEUEFORFIXED_HPP
 #include<iostream>
 #include<queue>
 #include<list>
