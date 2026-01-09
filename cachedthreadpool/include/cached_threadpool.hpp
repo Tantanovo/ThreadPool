@@ -134,12 +134,15 @@ public:
     void stop(){
         call_once(stop_flag,[this]{stopallthreads();cout<<"pool停止"<<endl;});
     }
+    // getidlecount: 获取空闲线程数
     int getidlecount()const{
         return idlecount;
     }
+    // gettotalcount: 获取总线程数
     int gettotalcount()const{
         return totalcount;
     }
+    // queuesize: 获取队列大小
     size_t queuesize()const{
         return queue_.getsize();
     }

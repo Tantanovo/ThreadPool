@@ -91,7 +91,7 @@ public:
         });
     }
 
-    // 提交任务（随机选择队列）
+    // execute: 提交任务（随机选择队列）
     template<typename Func, typename... Args>
     void execute(Func&& func, Args&&... args) {
         if (!running) {
@@ -106,7 +106,7 @@ public:
         size_t index = dist(gen);
         queues[index]->pushback(t);
     }
-    // 提交任务到指定线程的队列
+    // executeToThread: 提交任务到指定线程的队列
     template<typename Func, typename... Args>
     void executeToThread(size_t thread_index, Func&& func, Args&&... args) {
         if (!running) {
@@ -154,7 +154,7 @@ public:
         return sizes;
     }
     
-    // 获取总任务数量
+    // totaltaskcount: 获取总任务数量
     size_t totaltaskcount() const {
         size_t total = 0;    
         for (const auto& queue : queues) {
@@ -162,6 +162,7 @@ public:
         }
         return total;
     }
+    // printstatus: 打印线程池状态
     void printstatus() const {
         auto sizes = queuesizes();
         cout << "线程池状态：" << endl;      

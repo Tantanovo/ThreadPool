@@ -94,6 +94,7 @@ public:
         schedule(delay_seconds,move(wrapped_task));
         return result;
     }
+    // threadcount: 获取线程数量
     size_t threadcount()const{
         return workers.size();
     }

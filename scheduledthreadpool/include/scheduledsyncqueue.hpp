@@ -41,7 +41,7 @@ public:
     ScheduledSyncQueue(size_t max_size = 100) 
         : maxsize(max_size), isstop(false) {}
     
-    // 放入任务
+    // put: 放入任务
     bool put(const scheduledtask& task) {
         unique_lock<mutex> lock(mtx);   
         // 等待队列不满
@@ -53,7 +53,7 @@ public:
         notempty.notify_one();
         return true;
     }
-    // 取出任务（会等待到任务时间）
+    // take: 取出任务
     bool take(scheduledtask& task) {
         unique_lock<mutex> lock(mtx);   
         // 等待队列不空

@@ -53,11 +53,13 @@ public:
         call_once(stop_flag,[this](){stopworker();cout<<"pool停止"<<endl;});
     }
 
+    // execute: 执行任务
     template<typename Func,typename...Args>
     void execute(Func&&func,Args&&...args){
         auto task=bind(forward<Func>(func),forward<Args>(args)...);//：绑定函数和参数，forward保持参数的左值/右值属性
         queue_.put(task);
     }
+    // submit: 提交任务并返回future
     template<typename Func,typename...Args>
     auto submit(Func&&func,Args&&...args)->future<decltype(func(args...))>{
         using returntype=decltype(func(args...));
@@ -77,6 +79,7 @@ public:
     bool isrunning()const{
         return running;
     }
+    // getthreadid: 获取线程ID
     thread::id getthreadid()const{
         return worker.get_id();
     }

@@ -38,6 +38,7 @@ public:
         return true;
     }
     //窃取操作(其他线程用)
+    // stealfront: 从头部窃取任务
     bool stealfront(T&task){
         lock_guard<mutex>lock(mtx);
         if(tasks.empty()){
@@ -66,6 +67,7 @@ public:
         lock_guard<mutex>lock(mtx);
         return tasks.size();
     }
+    // waitfortask: 等待任务
     void waitfortask(){
         unique_lock<mutex>lock(mtx);
         notempty.wait(lock,[this](){return !tasks.empty();});

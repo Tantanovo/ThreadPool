@@ -24,6 +24,7 @@ public:
     SingleSyncQueue(const SingleSyncQueue&)=delete;
     SingleSyncQueue& operator=(const SingleSyncQueue&)=delete;
 
+    // put: 放入任务（左值）
     void put(const T&task){
         lock_guard<mutex>lock(mtx);
         if(isstop){
@@ -33,6 +34,7 @@ public:
         notempty.notify_one();
     }
     
+    // put: 放入任务（右值）
     void put(T&&task){
         lock_guard<mutex>lock(mtx);
         if(isstop){

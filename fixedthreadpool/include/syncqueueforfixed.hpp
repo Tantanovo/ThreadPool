@@ -78,9 +78,11 @@ public:
     ~FixedSyncQueue(){
         stop();
     }
+    // put: 放入任务
     void put(T&&task){
         add(forward(task));
     }
+    // take: 取出所有任务
     void take(list<T>&list){//全部取出
         unique_lock<mutex>locker(mtx);
         notempty.wait(locker,[this]{return isstop||!isfull();});
@@ -88,6 +90,7 @@ public:
         list=move(tasks);
         notfull.notify_one();
     }
+    // take: 取出单个任务
     void take(T&task){
         unique_lock<mutex>locker(mtx);
         notempty.wait(locker,[this]{return isstop||!isfull();});

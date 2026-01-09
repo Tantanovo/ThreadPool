@@ -24,6 +24,7 @@ private:
 public:
 public:
     CachedSyncQueue(int maxsize=100):maxsize(maxsize),isstop(false){}
+    // put: 放入任务
     bool put(const T&task){//放任务
         lock_guard<mutex>lock(mtx);
         if(isstop)return false;
@@ -31,6 +32,7 @@ public:
         notempty.notify_one();
         return true;
     }
+    // take: 取出任务
     bool take(T&task){
         unique_lock<mutex>lock(mtx);
         notempty.wait(lock,[this](){return isstop||!tasks.empty();});
@@ -39,6 +41,7 @@ public:
         tasks.pop();
         return true;
     }
+    // trytake: 尝试取出任务
     bool trytake(T&task){
         lock_guard<mutex>lock(mtx);
         if(tasks.empty())return false;

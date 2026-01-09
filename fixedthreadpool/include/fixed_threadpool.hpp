@@ -45,13 +45,16 @@ public:
     void stop(){
         call_once(stop_flag,[this]{stopworker();});//保证只调用一次
     }
+    // setrejectpolicy: 设置拒绝策略
     void setrejectpolicy(RejectPolicy policy){
         this->policy=policy;
     }
+    // execute: 执行任务
     template<typename Y>
     void execute(Y&&task){
         queue_.put(forward<Y>(task));
     }
+    // threadcount: 获取线程数量
     size_t threadcount()const{
         return workers.size();
     }
