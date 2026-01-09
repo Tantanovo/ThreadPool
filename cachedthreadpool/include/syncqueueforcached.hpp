@@ -15,6 +15,7 @@ class CachedSyncQueue{
 private:
     queue<T>tasks;
     condition_variable notempty;
+    condition_variable notfull;
     mutable mutex mtx;
     bool isstop;
     size_t maxsize;
@@ -56,6 +57,7 @@ public:
         lock_guard<mutex>lock(mtx);
         isstop=true;
         notempty.notify_all();
+        notfull.notify_all();
     }
     size_t getsize()const{
         lock_guard<mutex>lock(mtx);

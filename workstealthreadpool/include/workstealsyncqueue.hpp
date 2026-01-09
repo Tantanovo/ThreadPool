@@ -16,6 +16,7 @@ private:
     deque<T>tasks;
     mutable mutex mtx;
     condition_variable notempty;
+    condition_variable notfull;
   
 public:
     WorkStealSyncQueue()=default;
@@ -68,6 +69,11 @@ public:
     void waitfortask(){
         unique_lock<mutex>lock(mtx);
         notempty.wait(lock,[this](){return !tasks.empty();});
+    }
+    void stop(){
+        // 工作窃取队列不需要停止，但为了规范加一个
+        notempty.notify_all();
+        notfull.notify_all();
     }
 };
 #endif

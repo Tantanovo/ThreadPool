@@ -14,6 +14,7 @@ class SingleSyncQueue{
 private:
     queue<T>tasks;
     condition_variable notempty;
+    condition_variable notfull;
     mutable mutex mtx;
     bool isstop;
     
@@ -58,7 +59,7 @@ public:
         lock_guard<mutex>lock(mtx);
         isstop=true;
         notempty.notify_all();
-
+        notfull.notify_all();
     }
     bool empty()const{
         lock_guard<mutex>lock(mtx);
