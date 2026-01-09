@@ -1,5 +1,5 @@
-#ifndef SYNCQUEUEFORCACHED.HPP
-#define SYNCQUEUEFORCACHED.HPP
+#ifndef SYNCQUEUEFORCACHED_HPP
+#define SYNCQUEUEFORCACHED_HPP
 #include<iostream>
 #include<mutex>
 #include<atomic>

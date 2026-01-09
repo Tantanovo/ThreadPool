@@ -1,0 +1,3 @@
+#ifndef SCHEDULEDPOOL_HPP
+#define SCHEDULEDPOOL_HPP
+#endif

@@ -1,5 +1,5 @@
-#ifndef WORKSTEALSYNCQUEUE.HPP
-#define WORKSTEALSYNCQUEUE.HPP
+#ifndef WORKSTEALSYNCQUEUE_HPP
+#define WORKSTEALSYNCQUEUE_HPP
 #include<iostream>
 using namespace std;
 #include<mutex>

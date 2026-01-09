@@ -1,5 +1,5 @@
-#ifndef SINGLETHREADPOOL.HPP
-#define SINGLETHREADPOOL.HPP
+#ifndef SINGLETHREADPOOL_HPP
+#define SINGLETHREADPOOL_HPP
 #include<iostream>
 #include<mutex>
 #include<thread>

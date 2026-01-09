@@ -1,5 +1,5 @@
-#ifndef SINGLESYNCQUEUE.HPP
-#define SINGLESYNCQUEUE.HPP
+#ifndef SINGLESYNCQUEUE_HPP
+#define SINGLESYNCQUEUE_HPP
 #include<iostream>
 #include<mutex>
 #include<thread>
