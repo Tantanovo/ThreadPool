@@ -10,7 +10,7 @@
 #include<atomic>
 using namespace std;
 template<typename T>
-class syncqueue{
+class SingleSyncQueue{
 private:
     queue<T>tasks;
     condition_variable notempty;
@@ -18,10 +18,10 @@ private:
     bool isstop;
     
 public:
-    syncqueue():isstop(false){}
+    SingleSyncQueue():isstop(false){}
     //禁止拷贝
-    syncqueue(const syncqueue&)=delete;
-    syncqueue& operator=(const syncqueue&)=delete;
+    SingleSyncQueue(const SingleSyncQueue&)=delete;
+    SingleSyncQueue& operator=(const SingleSyncQueue&)=delete;
 
     void put(const T&task){
         lock_guard<mutex>lock(mtx);
@@ -51,7 +51,7 @@ public:
         tasks.pop();
         return true;
     }
-    ~syncqueue(){
+    ~SingleSyncQueue(){
         stop();
     }
     void stop(){

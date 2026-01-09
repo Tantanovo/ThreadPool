@@ -11,90 +11,90 @@ using namespace std;
 
 using Task = function<void()>;
 
-struct PairTask {
-    size_t first;      // 延迟时间（秒）
-    Task second;       // 任务函数
-    PairTask(size_t delay = 0, Task task = nullptr) 
-        : first(delay), second(task) {}
+struct scheduledtask {
+    Task task;
+    chrono::steady_clock::time_point exec_time;
+    int interval_seconds;
     // 用于priority_queue排序
-    bool operator>(const PairTask& other) const {
-        return first > other.first;
+    bool operator>(const scheduledtask& other) const {
+        return exec_time > other.exec_time;
     }
 };
 
-class SyncQueue {
+class ScheduledSyncQueue {
 private:
-    priority_queue<PairTask, vector<PairTask>, greater<PairTask>> tasks_;//最早的在堆顶
-    mutable mutex mutex_;
-    condition_variable not_empty_;
-    condition_variable not_full_;
-    size_t max_size_;
-    bool need_stop_;
+    priority_queue<scheduledtask, vector<scheduledtask>, greater<scheduledtask>> tasks;//最早的在堆顶
+    mutable mutex mtx;
+    condition_variable notempty;
+    condition_variable notfull;
+    size_t maxsize;
+    bool isstop;
     
-    bool isFull() const {
-        return tasks_.size() >= max_size_;
+    bool isfull() const {
+        return tasks.size() >= maxsize;
     }
-    bool isEmpty() const {
-        return tasks_.empty();
+    bool isempty() const {
+        return tasks.empty();
     }
     
 public:
-    SyncQueue(size_t max_size = 100) 
-        : max_size_(max_size), need_stop_(false) {}
+    ScheduledSyncQueue(size_t max_size = 100) 
+        : maxsize(max_size), isstop(false) {}
     
     // 放入任务
-    bool put(const PairTask& task) {
-        unique_lock<mutex> lock(mutex_);   
+    bool put(const scheduledtask& task) {
+        unique_lock<mutex> lock(mtx);   
         // 等待队列不满
-        not_full_.wait(lock, [this]() { 
-            return need_stop_ || !isFull(); 
+        notfull.wait(lock, [this]() { 
+            return isstop || !isfull(); 
         });
-        if (need_stop_) return false;
-        tasks_.push(task);
-        not_empty_.notify_one();
+        if (isstop) return false;
+        tasks.push(task);
+        notempty.notify_one();
         return true;
     }
     // 取出任务（会等待到任务时间）
-    bool take(PairTask& task) {
-        unique_lock<mutex> lock(mutex_);   
+    bool take(scheduledtask& task) {
+        unique_lock<mutex> lock(mtx);   
         // 等待队列不空
-        while (!need_stop_ && isEmpty()) {
-            not_empty_.wait(lock);
+        while (!isstop && isempty()) {
+            notempty.wait(lock);
         }
-        if (need_stop_ && isEmpty()) return false;
+        if (isstop && isempty()) return false;
         // 取出堆顶任务（时间最早的任务）
-        task = tasks_.top();
-        tasks_.pop();   
+        task = tasks.top();
+        tasks.pop();   
         // 等待到任务执行时间
-        if (task.first > 0) {
-            not_empty_.wait_for(lock, chrono::seconds(task.first));
+        if (task.exec_time > chrono::steady_clock::now()) {
+            auto delay = task.exec_time - chrono::steady_clock::now();
+            notempty.wait_for(lock, delay);
         }
-        not_full_.notify_one();
+        notfull.notify_one();
         return true;
     }
     
     // 停止队列
     void stop() {
         {
-            lock_guard<mutex> lock(mutex_);
-            need_stop_ = true;
+            lock_guard<mutex> lock(mtx);
+            isstop = true;
         }
-        not_empty_.notify_all();
-        not_full_.notify_all();
+        notempty.notify_all();
+        notfull.notify_all();
     }
     
     // 状态查询
-    size_t size() const {
-        lock_guard<mutex> lock(mutex_);
-        return tasks_.size();
+    size_t getsize() const {
+        lock_guard<mutex> lock(mtx);
+        return tasks.size();
     }
     bool empty() const {
-        lock_guard<mutex> lock(mutex_);
-        return tasks_.empty();
+        lock_guard<mutex> lock(mtx);
+        return tasks.empty();
     }
     bool stopped() const {
-        lock_guard<mutex> lock(mutex_);
-        return need_stop_;
+        lock_guard<mutex> lock(mtx);
+        return isstop;
     }
 };
 

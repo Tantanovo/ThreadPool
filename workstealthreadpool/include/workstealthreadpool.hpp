@@ -16,28 +16,28 @@ public:
     using task = function<void()>;
     
 private:
-    vector<unique_ptr<syncqueue<task>>> threadqueues;  // 每个线程一个队列
+    vector<unique_ptr<WorkStealSyncQueue<task>>> queues;  // 每个线程一个队列
     vector<thread> workers;
     atomic<bool> running;
-    once_flag isstop;
+    once_flag stop_flag;
     static thread_local size_t thread_index;  // 每个线程记住自己的索引
 
-    void workermain(size_t index) {
+    void workerthread(size_t index) {
         thread_index = index;
         while (running) {
             task t;
             // 1. 从自己的队列取任务
-            if (threadqueues[index]->popback(t)) {
+            if (queues[index]->popback(t)) {
                 t();
                 continue;
             }
             // 2. 自己队列空，尝试窃取
             bool stolen = false;
-            size_t queue_count = threadqueues.size();
+            size_t queue_count = queues.size();
             // 简单策略：按顺序尝试偷取（从下一个线程开始）
             for (size_t offset = 1; offset < queue_count; offset++) {
                 size_t target = (index + offset) % queue_count;
-                if (threadqueues[target]->stealfront(t)) {
+                if (queues[target]->stealfront(t)) {
                     stolen = true;
                     cout << "线程" << index << " 窃取了线程" << target << "的任务" << endl;
                     break;
@@ -52,13 +52,13 @@ private:
             this_thread::sleep_for(chrono::milliseconds(10));
         }
     }
-    void stopall() {
+    void stopworker() {
         running = false;   
         for (auto& thread : workers) {
             if (thread.joinable()) thread.join();
         }
         workers.clear();
-        threadqueues.clear();
+        queues.clear();
     }
 
 public:
@@ -68,14 +68,14 @@ public:
             thread_count = thread::hardware_concurrency();
         }
         // 创建队列
-        threadqueues.reserve(thread_count);
+        queues.reserve(thread_count);
         for (size_t i = 0; i < thread_count; i++) {
-            threadqueues.emplace_back(new syncqueue<task>());
+            queues.emplace_back(new WorkStealSyncQueue<task>());
         }
         // 创建工作线程
         workers.reserve(thread_count);
         for (size_t i = 0; i < thread_count; i++) {
-            workers.emplace_back(&workstealpool::workermain, this, i);
+            workers.emplace_back(&workstealpool::workerthread, this, i);
         }
         cout << "工作窃取线程池启动，有 " << thread_count << " 个线程" << endl;
     }
@@ -85,8 +85,8 @@ public:
         stop();
     }
     void stop() {
-        call_once(isstop, [this]() { 
-            stopall(); 
+        call_once(stop_flag, [this]() { 
+            stopworker(); 
             cout << "线程池已停止" << endl; 
         });
     }
@@ -102,9 +102,9 @@ public:
         // 随机选择一个队列（简单的随机）
         static random_device rd;
         static mt19937 gen(rd());
-        uniform_int_distribution<size_t> dist(0, threadqueues.size() - 1);
+        uniform_int_distribution<size_t> dist(0, queues.size() - 1);
         size_t index = dist(gen);
-        threadqueues[index]->pushback(t);
+        queues[index]->pushback(t);
     }
     // 提交任务到指定线程的队列
     template<typename Func, typename... Args>
@@ -112,11 +112,11 @@ public:
         if (!running) {
             throw runtime_error("线程池已停止");
         }
-        if (thread_index >= threadqueues.size()) {
+        if (thread_index >= queues.size()) {
             throw out_of_range("线程索引超出范围");
         }
         auto t = bind(forward<Func>(func), forward<Args>(args)...);
-        threadqueues[thread_index]->pushback(t);
+        queues[thread_index]->pushback(t);
     }
     // 提交任务（有返回值）
     template<typename Func, typename... Args>
@@ -132,38 +132,38 @@ public:
         // 随机选择队列
         static random_device rd;
         static mt19937 gen(rd());
-        uniform_int_distribution<size_t> dist(0, threadqueues.size() - 1);
+        uniform_int_distribution<size_t> dist(0, queues.size() - 1);
         size_t index = dist(gen);
         // 包装成void()函数
-        threadqueues[index]->pushback([task]() {
+        queues[index]->pushback([task]() {
             (*task)();
         });   
         return result;
     }
     // 获取线程数量
-    size_t threadCount() const {
+    size_t threadcount() const {
         return workers.size();
     }
     // 获取各队列大小
-    vector<size_t> queueSizes() const {
+    vector<size_t> queuesizes() const {
         vector<size_t> sizes;
-        sizes.reserve(threadqueues.size());
-        for (const auto& queue : threadqueues) {
+        sizes.reserve(queues.size());
+        for (const auto& queue : queues) {
             sizes.push_back(queue->getsize());
         }
         return sizes;
     }
     
     // 获取总任务数量
-    size_t totalTaskCount() const {
+    size_t totaltaskcount() const {
         size_t total = 0;    
-        for (const auto& queue : threadqueues) {
+        for (const auto& queue : queues) {
             total += queue->getsize();
         }
         return total;
     }
-    void printStatus() const {
-        auto sizes = queueSizes();
+    void printstatus() const {
+        auto sizes = queuesizes();
         cout << "线程池状态：" << endl;      
         for (size_t i = 0; i < sizes.size(); i++) {
             cout << "  线程" << i << "队列: " << sizes[i] << " 个任务" << endl;

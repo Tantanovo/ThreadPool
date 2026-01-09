@@ -10,26 +10,32 @@
 #include<functional>
 #include<condition_variable>
 #include <chrono>
-#include"fixed_threadpool.hpp"
 using namespace std;
+//拒绝策略
+enum class RejectPolicy {
+    abort,           // 直接抛异常（默认）
+    caller_runs,     // 调用者线程执行
+    discard,         // 静默丢弃
+    discard_oldest   // 丢弃最老任务
+};
 template<typename T>
-class syncqueue{
+class FixedSyncQueue{
 private:
     list<T> tasks;
-    mutable mutex t_mtx;
+    mutable mutex mtx;
     condition_variable notfull;//通知存
     condition_variable notempty;//通知取
-    int tmaxsize;
+    int max_size;
     bool isstop;
     bool isfull()const{
-        return tasks.size()>=tmaxsize;
+        return tasks.size()>=max_size;
     }
     bool isempty()const{
         return tasks.empty();
     }
     template<typename Y>
     bool add(Y&&task,RejectPolicy policy=RejectPolicy::abort){
-        unique_lock<mutex>locker(t_mtx);
+        unique_lock<mutex>locker(mtx);
         if(!notfull.wait_for(locker,chrono::microseconds(100),[this]{return isstop||!isfull();})){
             switch (policy){
             case RejectPolicy::abort:
@@ -68,22 +74,22 @@ private:
 
     
 public:
-    syncqueue(int size=100):tmaxsize(size),isstop(false){}
-    ~syncqueue(){
+    FixedSyncQueue(int size=100):max_size(size),isstop(false){}
+    ~FixedSyncQueue(){
         stop();
     }
     void put(T&&task){
         add(forward(task));
     }
     void take(list<T>&list){//全部取出
-        unique_lock<mutex>locker(t_mtx);
+        unique_lock<mutex>locker(mtx);
         notempty.wait(locker,[this]{return isstop||!isfull();});
         if(isstop)return;
         list=move(tasks);
         notfull.notify_one();
     }
     void take(T&task){
-        unique_lock<mutex>locker(t_mtx);
+        unique_lock<mutex>locker(mtx);
         notempty.wait(locker,[this]{return isstop||!isfull();});
         if(isstop)return ;
         task=tasks.front();
@@ -91,25 +97,25 @@ public:
         notfull.notify_one();
     }
     void stop(){
-        lock_guard<mutex>locker(t_mtx);
+        lock_guard<mutex>locker(mtx);
         isstop=true;
         notempty.notify_all();
         notfull.notify_all();
     }
     bool empty()const{
-        lock_guard<mutex>locker(t_mtx);
+        lock_guard<mutex>locker(mtx);
         return tasks.empty();
     }
     bool full()const{
-        lock_guard<mutex>locker(t_mtx);
-        return tasks.size()>=tmaxsize;
+        lock_guard<mutex>locker(mtx);
+        return tasks.size()>=maxsize;
     }
-    size_t size()const{
-        lock_guard<mutex>locker(t_mtx);
+    size_t getsize()const{
+        lock_guard<mutex>locker(mtx);
         return tasks.size();
     }
     int maxsize()const{
-        return tmaxsize;
+        return max_size;
     }
 };
 #endif

@@ -17,7 +17,7 @@ public:
     using task=function<void()>;
 private:
     thread worker;
-    syncqueue<task>queue_;
+    SingleSyncQueue<task> queue_;
     atomic<bool>running;
     once_flag stop_flag;
 

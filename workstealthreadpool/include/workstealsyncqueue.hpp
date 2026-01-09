@@ -11,16 +11,16 @@ using namespace std;
 #include<functional>
 #include<list>
 template<typename T>
-class syncqueue{    
+class WorkStealSyncQueue{    
 private:
     deque<T>tasks;
     mutable mutex mtx;
     condition_variable notempty;
   
 public:
-    syncqueue()=default;
-    syncqueue(const syncqueue&)=delete;
-    syncqueue& operator=(const syncqueue&)=delete;
+    WorkStealSyncQueue()=default;
+    WorkStealSyncQueue(const WorkStealSyncQueue&)=delete;
+    WorkStealSyncQueue& operator=(const WorkStealSyncQueue&)=delete;
     //本地线程用
     void pushback(T task){//从尾部放入任务
         lock_guard<mutex>lock(mtx);
@@ -57,7 +57,7 @@ public:
         return true;
     }
 
-    void empty()const{
+    bool empty()const{
         lock_guard<mutex>lock(mtx);
         return tasks.empty();
     }
